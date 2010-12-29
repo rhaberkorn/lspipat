@@ -1,0 +1,2005 @@
+<?xml version="1.0"?>
+
+<!--
+	LSPIPAT - LUA SPIPAT WRAPPER
+	Copyright (C) 2010, Robin Haberkorn
+	License: LGPL
+
+	DOCUMENTATION AND MODULE REFERENCE
+-->
+
+<book xmlns="http://docbook.org/ns/docbook"
+      xmlns:xlink="http://www.w3.org/1999/xlink">
+	<info>
+		<title>SNOBOL/SPITBOL Patterns for Lua</title>
+		<subtitle>libspipat Lua wrapper</subtitle>
+		<titleabbrev>lspipat</titleabbrev>
+
+		<author>
+			<personname><firstname>Robin</firstname> <surname>Haberkorn</surname></personname>
+			<email>robin.haberkorn at googlemail.com</email>
+		</author>
+		<copyright>
+			<year>2010</year><holder>Robin Haberkorn</holder>
+		</copyright>
+
+		<mediaobject>
+			<imageobject><imagedata format="PNG" fileref="lspipat.png"/></imageobject>
+		</mediaobject>
+
+		<abstract><para>
+			The following document is the <productname>lspipat</productname>
+			Lua 5.1 module documentation and reference.
+		</para></abstract>
+	</info>
+
+	<acknowledgements>
+		<title>Thanks To...</title>
+
+		<para>
+			<productname>lspipat</productname> would not be possible without:
+		</para>
+		<itemizedlist>
+			<listitem>
+				<firstname>Phil</firstname> <surname>Budne</surname>, for <productname>spipat</productname>.
+				<productname>lspipat</productname> is merely a <productname>spipat</productname> wrapper.
+			</listitem><listitem>
+				<firstname>Robert</firstname> <surname>Dewar</surname> who has created Macro SPITBOL and
+				the GNAT.Spitbol package.
+				<productname>spipat</productname> was derived from GNAT.Spitbol, which is based on Macro SPITBOL.
+			</listitem>
+		</itemizedlist>
+	</acknowledgements>
+
+	<preface>
+		<title>Introduction</title>
+
+		<para>
+			<productname>lspipat</productname> is a wrapper to <productname>spipat</productname>
+			that brings support for a first-class SNOBOL/SPITBOL-like pattern data type.
+			Patterns can be constructed and subsequently combined with other patterns,
+			strings, numbers and functions using binary and unary operators allowing
+			the construction of grammars describing any <emphasis>Context Free Language</emphasis>.
+			Patterns can be matched against any Lua string.
+			A major difference to other pattern matching techniques like regular expressions, besides
+			the supported language class, is the possibility to construct patterns/grammars in a
+			readable and intuitive way, somewhat reminiscent of the <emphasis>BNF</emphasis>.
+		</para><para>
+			They can include pattern elements that have side-effects (i.e. Lua code executed during
+			pattern matching) or produce and influence pattern elements dynamically.
+			For instance, functions can be specified that are executed during matching to produce
+			the parameters necessary for the interpretation of a pattern element.
+			Code can be embedded that generates entire patterns on the fly.
+			Matching previously matched substrings and implementing recursive patterns
+			is only one application of the powerful dynamic pattern elements traditionally
+			offered by SNOBOL pattern matching and thus by <productname>lspipat</productname>.
+		</para><para>
+			SNOBOL/SPITBOL pattern matching was traditionally used in compiler construction
+			and prototyping, artificial intelligence research and the humanities.
+		</para>
+	</preface>
+
+	<chapter>
+		<title>Resources</title>
+
+		<para>
+			These internet resources are more or less directly related to <productname>lspipat</productname> and
+			might be useful to you:
+
+			<itemizedlist>
+				<listitem>
+					<link xlink:href="http://luaforge.net/projects/lspipat/">http://luaforge.net/projects/lspipat/</link>:
+					<productname>lspipat</productname> project page at LuaForge, downloads, bug tracker, etc.
+				</listitem><listitem>
+					<link xlink:href="http://www.snobol4.org/spipat/">http://www.snobol4.org/spipat/</link>:
+					<productname>libspipat</productname> downloads
+				</listitem><listitem>
+					<link xlink:href="http://pypi.python.org/pypi/spipat/">http://pypi.python.org/pypi/spipat/</link>:
+					<productname>libspipat's</productname> Python wrapper (included in <productname>libspipat</productname>
+					packages).
+				</listitem><listitem>
+					<link xlink:href="http://www.infeig.unige.ch/support/ada/gnatlb/g-spipat.html">http://www.infeig.unige.ch/support/ada/gnatlb/g-spipat.html</link>:
+					<productname>GNAT.Spitbol</productname> description. Also installed as <filename>pattern.txt</filename> by <productname>lspipat</productname>.
+				</listitem><listitem>
+					<link xlink:href="ftp://ftp.cs.arizona.edu/snobol/gb.pdf">ftp://ftp.cs.arizona.edu/snobol/gb.pdf</link>:
+					The SNOBOL4 Programming Language (The famous <emphasis>Green Book</emphasis>)
+				</listitem><listitem>
+					<link xlink:href="ftp://ftp.snobol4.com/spitman.pdf">ftp://ftp.snobol4.com/spitman.pdf</link>:
+					Macro SPITBOL Reference Manual
+				</listitem><listitem>
+					<link xlink:href="http://www.snobol4.org/">other interesting resources compiled by Phil Budne...</link>
+				</listitem>
+			</itemizedlist>
+		</para>
+	</chapter>
+
+	<chapter>
+		<title>Comparison with SNOBOL</title>
+
+		<para>
+			Just as patterns in <productname>SNOBOL</productname> are combined and constructed dynamically with
+			binary and unary operators, <productname>lspipat</productname> also uses operators available in
+			Lua to construct patterns in a simple and intuitive way.
+			The operators and pattern-construction functions were chosen, so the pattern construction syntax
+			is as similar as possible to <productname>SNOBOL</productname>/<productname>SPITBOL</productname>.
+			The following table shows a comparision of operators between
+			<productname>SPITBOL</productname> and <productname>lspipat</productname>:
+		</para>
+		<table xml:id="operator_comparison">
+			<title>Comparision of SPITBOL and lspipat operators</title>
+
+			<tgroup cols="4" colsep="1" rowsep="1">
+				<colspec colnum="2" align="center"/> <!-- operators -->
+				<colspec colnum="3" align="center"/>
+
+				<thead>
+					<row>
+						<entry>Operation</entry>
+						<entry>SPITBOL</entry>
+						<entry>lspipat</entry>
+						<entry>Notes</entry>
+					</row>
+				</thead><tbody>
+					<row>
+						<entry>Alternation</entry>
+						<entry><command>|</command></entry>
+						<entry><command>+</command></entry>
+						<entry morerows="1"><para>
+							Refer to <xref linkend="composition"/>.
+							Cannot be used to combine two <emphasis>strings</emphasis>.
+						</para></entry>
+					</row><row>
+						<entry>Concatenation</entry>
+						<entry><emphasis>(space)</emphasis></entry>
+						<entry><command>*</command></entry>
+					</row><row>
+						<entry>Immediate Assignment/Call</entry>
+						<entry><command>$</command></entry>
+						<entry><command>%</command></entry>
+						<entry morerows="1"><para>
+							<link linkend="assignment"><command>%</command> and <command>/</command></link> have the
+							<link xlink:href="http://www.lua.org/manual/5.1/manual.html#2.5.6">same precedence</link>
+							as <link linkend="concat"><command>*</command></link> in Lua.
+							Also only call versions are supported (see <xref linkend="deferring"/>).
+						</para></entry>
+					</row><row>
+						<entry>Deferred Assignment/Call</entry>
+						<entry><command>.</command></entry>
+						<entry><command>/</command></entry>
+					</row><row>
+						<entry morerows="1">Cursor Assignment</entry>
+						<entry morerows="1"><command>@</command> <emphasis>(unary)</emphasis></entry>
+						<entry><command>#</command> <emphasis>(unary)</emphasis></entry>
+						<entry morerows="1"><para>
+							Refer to <xref linkend="cursor"/>.
+							<productname>lspipat</productname> only supports a call version
+							(see <xref linkend="deferring"/>).
+						</para></entry>
+					</row><row>
+						<!-- <entry/> -->
+						<!-- <entry/> -->
+						<entry><command>Setcur</command></entry>
+					</row><row>
+						<entry>Defer Expression</entry>
+						<entry><command>*</command> <emphasis>(unary)</emphasis></entry>
+						<entry morerows="1"><command>-</command> <emphasis>(unary)</emphasis> or <command>Pred</command></entry>
+						<entry morerows="1"><para>
+							Refer to <xref linkend="predicate"/>.
+							In general, expressions can be wrapped in (anonymous) functions to defer them.
+						</para></entry>
+					</row><row>
+						<entry>Interrogation/Predicate</entry>
+						<entry><command>?</command> <emphasis>(unary)</emphasis></entry>
+						<!-- <entry/> -->
+					</row><row>
+						<entry morerows="1">Pattern Match</entry>
+						<entry><command>?</command></entry>
+						<entry morerows="1"><command>smatch</command></entry>
+						<entry morerows="1"><para>
+							Refer to <xref linkend="smatch"/>.
+							<code>S ? P</code> is roughly equivalent to <code>S:smatch(P)</code> in Lua.
+						</para></entry>
+					</row><row>
+						<!-- <entry/> -->
+						<entry><emphasis>(space)</emphasis></entry>
+						<!-- <entry/> -->
+					</row><row>
+						<entry>Substring Replacement</entry>
+						<entry><command>=</command></entry>
+						<entry><command>ssub</command></entry>
+						<entry><para>
+							Refer to <xref linkend="ssub"/>.
+							<code>S P = R</code> is roughly equivalent to <code>S:ssub(P, R, 1)</code> in Lua.
+						</para></entry>
+					</row>
+				</tbody>
+			</tgroup>
+		</table>
+	</chapter>
+
+	<chapter>
+		<title>Installation</title>
+
+		<para>
+			<productname>lspipat</productname> uses an autotools buildsystem. The standard
+			<filename>INSTALL</filename> file contains instructions on how to use it from
+			a package builder's perspective.
+			Nevertheless, there are some quirks that should be mentioned.
+		</para>
+
+		<section>
+			<title>Dependencies</title>
+
+			<itemizedlist>
+				<listitem><para>
+					<link xlink:href="http://www.snobol4.org/spipat/test/spipat-0.9.3%2b.tar.gz">spipat 0.9.3+</link>:
+					You are advised to apply the patch <filename>spipat-patches/0.9.3+_image.patch</filename> first
+					before building <productname>spipat</productname>, even though it is not mandatory.
+					It fixes a header file (so <productname>lspipat</productname> can make use of customized
+					<link linkend="tostring">render-to-string</link> functionality) and various bugs.
+				</para></listitem>
+				<listitem><para>
+					<link xlink:href="http://www.lua.org/download.html">Lua 5.1</link>:
+					You probably have this already. The <filename>configure</filename> script
+					should be able to cope with <productname>Ubuntu</productname> and
+					<link xlink:href="http://lua-users.org/wiki/LuaBinaries">Lua Binaries</link>
+					distributions. The standalone Lua compiler is only required if
+					<link linkend="precompile">compilation of Lua scripts</link> is enabled.
+				</para></listitem>
+			</itemizedlist>
+		</section>
+
+		<section>
+			<title>Configuration Options</title>
+
+			<para>
+				The following special <filename>configure</filename> script options
+				are supported:
+			</para>
+			<variablelist>
+				<varlistentry>
+					<term><arg choice="plain">--enable-lua-libdir=<replaceable>DIR</replaceable></arg></term>
+					<listitem><para>
+						Change the installation directory of <productname>lspipat</productname>.
+						It defaults to <filename>LIBDIR/lua/5.1</filename>. You probably want this to
+						point to some directory in Lua's
+						<link xlink:href="http://www.lua.org/manual/5.1/manual.html#pdf-require">
+						module search path</link>, so the default should be ok.
+					</para></listitem>
+				</varlistentry>
+				<varlistentry xml:id="precompile">
+					<term><arg choice="plain">--disable-lua-precompile</arg></term>
+					<listitem><para>
+						Disable precompilation of Lua source files.
+						Naturally, a Lua compiler will not be required when this option
+						is used.
+					</para></listitem>
+				</varlistentry>
+				<varlistentry>
+					<term><arg choice="plain">--disable-lua-strip</arg></term>
+					<listitem><para>
+						Do not strip (i.e. remove debugging symbols from) compiled
+						Lua sources.
+					</para></listitem>
+				</varlistentry>
+				<varlistentry>
+					<term><arg choice="plain">--disable-html-doc</arg></term>
+					<listitem><para>
+						Do not generate HTML documentation. The documentation is usually
+						derived from <productname>Docbook</productname> using
+						<application>XSLTProc</application>.
+						Disabling this may be useful if you have got some problem
+						with the tool chain but are satisfied with the precompiled
+						documentation in the distribution.
+					</para></listitem>
+				</varlistentry>
+			</variablelist>
+			<para>
+				Furthermore, you should note that <link linkend="tostring">render-to-string</link> results are not
+				reminiscent of <productname>lspipat</productname> syntax (used in this document) by default.
+				For <productname>lspipat</productname> to be able to customize these renderings,
+				<filename>configure</filename> has to find some <productname>spipat</productname> headers which
+				are not normally installed.
+				Therefore it is highly recommended to add spipat's source directory to the C include search path
+				using the <envar>CPPFLAGS</envar> variable before running <filename>configure</filename>.
+			</para>
+		</section>
+
+		<para>
+			Thus, supposing that <productname>spipat</productname> sources are located in your home directory,
+			the most common way to install <productname>lspipat</productname> would be:
+		</para>
+		<informalexample>
+			<programlisting><![CDATA[./configure CPPFLAGS=-I~/spipat-0.9.3+
+make install]]></programlisting>
+		</informalexample>
+	</chapter>
+
+	<chapter>
+		<title>Usage</title>
+
+		<para>
+			After <productname>lspipat</productname> has been installed properly, you will
+			be able use it in your Lua program by simply requiring <literal>lspipat</literal>
+			(i.e. <code>require "lspipat"</code>).
+		</para><para>
+			The module table will be called <literal>spipat</literal>, but many functions
+			(especially pattern constructors) will be registered as globals as well.
+			Also, some operators will be overloaded.
+			For details on all that (operators, globals, etc.) refer to
+			<xref linkend="reference"/>.
+		</para>
+	</chapter>
+
+	<chapter>
+		<title>Examples</title>
+
+		<para>
+			The <filename>samples</filename> directory in the <productname>lspipat</productname> source package
+			contains some small examples that I hope give you some inspiration on how and where to use
+			<productname>lspipat</productname>.
+		</para>
+		<variablelist>
+			<varlistentry>
+				<term><filename>samples/exp2bf.lua</filename></term>
+				<listitem>
+					<cmdsynopsis><command>exp2bf.lua</command> <arg choice="plain"><replaceable>expression</replaceable></arg></cmdsynopsis>
+					<para>
+						Compiles simple arithmetic expressions to Brainfuck programs that when
+						executed evaluate the expression and print the result
+						(8-bit unsigned integer arithmetics).
+						Prints these programs to <emphasis>stdout</emphasis>.
+					</para><para>
+						Use that for whatever you can imagine ;-)
+					</para>
+				</listitem>
+			</varlistentry><varlistentry>
+				<term><filename>samples/wave.lua</filename></term>
+				<listitem>
+					<cmdsynopsis><command>wave.lua</command> <arg choice="plain"><replaceable>wavefile</replaceable></arg></cmdsynopsis>
+					<para>
+						Validates/parses <filename>WAV</filename> files
+						and prints some information about it.
+					</para><para>
+						This is an example of how to use <productname>lspipat</productname>
+						to do pattern matching on "binary" data (formats, protocols). Some
+						primitives were implemented in Lua for that reason - in the future
+						there might be a separate C-module to do the encoding/decoding of
+						integers in different byte-orders more efficiently.
+					</para>
+				</listitem>
+			</varlistentry><varlistentry>
+				<term><filename>samples/regexp.lua</filename></term>
+				<listitem><para>
+					Small regular expression example/test - uses a comprehensive regular
+					expression describing IPs.
+				</para></listitem>
+			</varlistentry>
+		</variablelist>
+	</chapter>
+
+	<chapter xml:id="deferring">
+		<title>Variable Deferring Techniques</title>
+
+		<para>
+			In SNOBOL, arbitrary expressions could be <emphasis>deferred</emphasis>
+			(i.e. their evaluation could be deferred) by using the unary asterisk operator.
+			With <productname>lspipat</productname> however, you will have to pass functions
+			(which can be constructed anonymously) to the appropriate constructors to achieve
+			the same goal.
+		</para><para>
+			Deferring expressions which should be combined with other patterns is one
+			application of the <link linkend="predicate"><command>Pred</command> constructor</link>
+			and <command>-</command> operator respectively.
+		</para><para>
+			Deferring variables is just a special case of deferring expressions.
+			In this chapter, different ways of optimizing variable deferrings will be
+			explained using a simple example.
+		</para><para>
+			For instance if you would like to <link linkend="assignment">assign</link> a
+			matched quotation character to a local variable and use that to subsequently match
+			a simple quote/string, you could use function closures to write something like that:
+		</para>
+		<example>
+			<title>Function Closures for Deferring Purposes</title>
+
+			<programlisting language="lua">local cquote
+string = <link linkend="Any">Any</link>("\"'") / function(c) cquote = c end
+       * <link linkend="Break">Break</link>(function() return cquote end)
+       * -function() return cquote end</programlisting>
+		</example>
+		<para>
+			You may find this solution a bit verbose, compared with
+			SNOBOL's elegant syntax.
+			To save some typing you could define your own constructors
+			that take the name of a global variable (as a string)
+			and construct patterns whose arguments are retrieved by
+			a function closure accessing the globals table.
+		</para>
+		<example>
+			<title>Custom Constructors for Deferring Purposes</title>
+
+			<programlisting language="lua">function _Break(name)
+       return <link linkend="Break">Break</link>(function() return _G[name] end)
+end
+function _Pred(name)
+       return -function() return _G[name] end
+end
+
+string = <link linkend="Any">Any</link>("\"'") / function(c) cquote = c end
+       * _Break "cquote"
+       * _Pred  "cquote"</programlisting>
+		</example>
+		<para>
+			Of course, if you do not want to pollute the global namespace
+			your custom functions could just as well access a local table.
+			Furthermore, you could optimize the code by defining one generic
+			table access function which is suitable to be used for
+			<productname>lspipat</productname>'s pattern constructors -
+			being able to pass so called <emphasis>cookies</emphasis>
+			to functions comes in handy.
+		</para>
+		<example>
+			<title>Generic Retrievers for Deferring Purposes</title>
+
+			<programlisting language="lua">function getGlobal(name) return _G[name] end
+function _Break(name) return <link linkend="Break">Break</link>(getGlobal, name) end
+function _Pred(name) return <link linkend="Pred">Pred</link>(getGlobal, name) end
+-- ...</programlisting>
+		</example>
+		<para>
+			Fortunately, <productname>lspipat</productname> already defines
+			such constructors (deferring global variables) for you.
+			Whereever possible, there will be versions of constructors
+			with leading underscores that work similar to the ones in
+			the example above.
+			You can of course overwrite these constructors, e.g. with
+			versions accessing a special local table.
+		</para>
+
+		<section>
+			<title>Recursive Patterns</title>
+
+			<para>
+				Recursive patterns can be implemented just as described above.
+				Supposing you want to match the repetition of the predefined pattern
+				<literal>P</literal> (<emphasis>greedy</emphasis>) you could write
+				something like that:
+			</para>
+			<example>
+				<title>Recursive Patterns</title>
+
+				<programlisting language="lua"><![CDATA[foo = P * -"foo" + ""]]></programlisting>
+			</example>
+			<para>
+				Sometimes however when using global variables is inappropriate,
+				you might want to do the following trick:
+			</para>
+			<example>
+				<title>Recursive Pattern Trick</title>
+
+				<programlisting language="lua"><![CDATA[local function foo() return foo end
+foo = P * -foo + ""]]></programlisting>
+			</example>
+			<para>
+				It works because <literal>foo</literal> is still a function in the scope
+				of the assignment's right side, but a pattern afterwards so the
+				function - to which no (direct) reference exists anymore - will return
+				the pattern <literal>foo</literal> after the assignment.
+			</para>
+		</section>
+	</chapter>
+
+	<reference xml:id="reference">
+		<title>Module Reference</title>
+
+		<partintro><para>
+			A compilation of all functions in the <productname>lspipat</productname>
+			module, global functions registered by the module, methods
+			and overloaded operators follows.
+		</para></partintro>
+
+		<refentry xml:id="smatch">
+			<refmeta><refentrytitle>smatch</refentrytitle></refmeta>
+
+			<refnamediv>
+				<refname>smatch</refname>
+				<refpurpose>Perform pattern match on a subject string</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command>spipat.smatch</command>
+					( <arg choice="plain"><replaceable>subject</replaceable></arg>
+					  <arg choice="plain">, <replaceable>pattern</replaceable></arg>
+					  <arg>, <replaceable>flags</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><replaceable>subject</replaceable>:smatch</command>
+					( <arg choice="plain"><replaceable>pattern</replaceable></arg>
+					  <arg>, <replaceable>flags</replaceable></arg> )
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					Tries to match <emphasis>pattern</emphasis> against <emphasis>subject</emphasis>
+					using the given <emphasis>flags</emphasis>.
+				</para>
+			</refsect1><refsect1>
+				<title>Parameters</title>
+
+				<orderedlist>
+					<listitem>subject (<emphasis>string</emphasis>): A string against which the pattern match will be performed</listitem>
+					<listitem>pattern (<emphasis>userdata</emphasis>): The pattern used for matching</listitem>
+					<listitem>
+						flags (<emphasis>number</emphasis> or <emphasis>nil</emphasis>):
+						Optional <productname>spipat</productname> flags.
+					</listitem>
+				</orderedlist>
+
+				<refsect2 xml:id="spipat_flags">
+					<title>Spipat Flags</title>
+
+					<para>
+						Flags are added (e.g. <code>spipat.match_anchored + spipat.match_debug</code>),
+						due to the lack of a logical/binary <emphasis>or</emphasis> operator in Lua.
+					</para>
+					<itemizedlist>
+						<listitem>
+							<literal>spipat.match_anchored</literal>: Match in anchored mode
+						</listitem><listitem>
+							<literal>spipat.match_debug</literal>:
+							Match with progress being printed to <emphasis>stdout</emphasis>.
+							Useful for pattern debugging as the name suggests.
+						</listitem>
+					</itemizedlist>
+				</refsect2>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<para>
+					In case of an exception during matching, raises an error.
+					In case no substring matches, returns a single <emphasis>nil</emphasis> value.
+					Otherwise returns
+				</para>
+				<orderedlist>
+					<listitem><emphasis>number</emphasis>: Start of matched substring</listitem>
+					<listitem><emphasis>number</emphasis>: End of matched substring</listitem>
+				</orderedlist>
+			</refsect1>
+		</refentry>
+
+		<refentry xml:id="ssub">
+			<refmeta><refentrytitle>ssub</refentrytitle></refmeta>
+
+			<refnamediv>
+				<refname>ssub</refname>
+				<refpurpose>Substitute substrings matching a pattern in a subject</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command>spipat.ssub</command>
+					( <arg choice="plain"><replaceable>subject</replaceable></arg>
+					  <arg choice="plain">, <replaceable>pattern</replaceable></arg>
+					  <arg choice="plain">, <replaceable>replacement</replaceable></arg>
+					  <arg><arg choice="plain">, <replaceable>n</replaceable></arg><arg>, <replaceable>flags</replaceable></arg></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><replaceable>subject</replaceable>:ssub</command>
+					( <arg choice="plain"><replaceable>pattern</replaceable></arg>
+					  <arg choice="plain">, <replaceable>replacement</replaceable></arg>
+					  <arg><arg choice="plain">, <replaceable>n</replaceable></arg><arg>, <replaceable>flags</replaceable></arg></arg> )
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					Substitutes regions in <emphasis>subject</emphasis> matching <emphasis>pattern</emphasis> either with a string
+					if <emphasis>replacement</emphasis> is a string or if <emphasis>replacement</emphasis> is a function, the result
+					of calling that function. This may be useful for deferring the evaluation of replacement strings
+					which depend on (are built from) results of the matching process (e.g. call-on-match or call-immediately function executions).
+				</para>
+			</refsect1><refsect1>
+				<title>Parameters</title>
+
+				<orderedlist>
+					<listitem>subject (<emphasis>string</emphasis>): The subject for the first pattern match</listitem>
+					<listitem>pattern (<emphasis>userdata</emphasis>): The pattern used for matching</listitem>
+					<listitem>
+						replacement (<emphasis>string</emphasis> or <emphasis>function</emphasis>):
+						Replacement string or a function that's executed after matching to produce the replacement string
+					</listitem><listitem>
+						n (<emphasis>number</emphasis> or <emphasis>nil</emphasis>):
+						Optional maximal number of match/replacement operations. The first match
+						is performed on <emphasis>subject</emphasis>, subsequent matches on the result of the preceding
+						replacements. Naturally replacement stops when the pattern does not match anymore.
+						If <emphasis>n</emphasis> is absent or nil, replacement only stops when <emphasis>pattern</emphasis>
+						does not match anymore.
+					</listitem><listitem>
+						flags (<emphasis>number</emphasis> or <emphasis>nil</emphasis>):
+						Optional <productname>spipat</productname> flags, as in <xref linkend="spipat_flags"/>.
+					</listitem>
+				</orderedlist>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<para>
+					In case of an exception during matching, raises an error.
+					Otherwise returns
+				</para>
+				<orderedlist>
+					<listitem>
+						<emphasis>string</emphasis>: The result of the last replacement performed or the original
+						<emphasis>subject</emphasis> if no substring matched at all
+					</listitem><listitem>
+						<emphasis>number</emphasis>: The number of match/replacement operations actually performed
+					</listitem>
+				</orderedlist>
+			</refsect1><refsect1>
+				<title>Example</title>
+
+				<example>
+					<title>Replacements with spipat.ssub</title>
+
+					<screen>&gt; print(spipat.ssub("abc ccC bab", <link linkend="Span">Span</link>("abc") / function(s) str = s end, function() return "["..str:upper().."]" end, 2))
+[ABC] [CC]C BaB
+&gt;</screen>
+				</example>
+			</refsect1>
+		</refentry>
+
+		<refentry xml:id="siter">
+			<refmeta><refentrytitle>siter</refentrytitle></refmeta>
+
+			<refnamediv>
+				<refname>siter</refname>
+				<refpurpose>Return iterator of substrings matching a pattern in a subject</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command>spipat.siter</command>
+					( <arg choice="plain"><replaceable>subject</replaceable></arg>
+					  <arg choice="plain">, <replaceable>pattern</replaceable></arg>
+					  <arg>, <replaceable>flags</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><replaceable>subject</replaceable>:siter</command>
+					( <arg choice="plain"><replaceable>pattern</replaceable></arg>
+					  <arg>, <replaceable>flags</replaceable></arg> )
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					Returns an iterator function performing a <emphasis>pattern</emphasis> match on <emphasis>subject</emphasis>
+					and returning the matched substring (start/end positions in <emphasis>subject</emphasis>).
+					Each time it is called, it begins matching where the last substring ended, but using the same
+					<emphasis>subject</emphasis>.
+				</para>
+			</refsect1><refsect1>
+				<title>Parameters</title>
+
+				<orderedlist>
+					<listitem>subject (<emphasis>string</emphasis>): The subject used for pattern matching</listitem>
+					<listitem>
+						pattern (<emphasis>userdata</emphasis>): The pattern used for matching.
+						Naturally, anchoring the <emphasis>pattern</emphasis> using any of the possible methods is nonsense.
+					</listitem><listitem>
+						flags (<emphasis>number</emphasis> or <emphasis>nil</emphasis>):
+						Optional <productname>spipat</productname> flags, as in <xref linkend="spipat_flags"/>.
+					</listitem>
+				</orderedlist>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<para>
+					In case of an exception during matching, raises an error.
+					Otherwise returns
+				</para>
+				<orderedlist><listitem>
+					<emphasis>function</emphasis>: The iterator function. Calling it returns
+					<orderedlist>
+						<listitem><emphasis>number</emphasis>: Start of matched substring</listitem>
+						<listitem><emphasis>number</emphasis>: End of matched substring</listitem>
+					</orderedlist>
+				</listitem></orderedlist>
+			</refsect1><refsect1>
+				<title>Example</title>
+
+				<example xml:id="example_siter">
+					<title>Iterating through substrings with spipat.siter</title>
+
+					<screen>&gt; str = "abc"
+&gt; for s, e in str:siter(<link linkend="Len">Len</link>(1)) do print(str:sub(s, e)) end
+a
+b
+c
+&gt;</screen>
+				</example>
+			</refsect1>
+		</refentry>
+
+		<refentry xml:id="free">
+			<refmeta><refentrytitle>free</refentrytitle></refmeta>
+
+			<refnamediv>
+				<refname>free</refname>
+				<refpurpose>Finalize pattern</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command>spipat.free</command>( <arg choice="plain"><replaceable>pattern</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><replaceable>pattern</replaceable>:free</command>()
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					Finalizes <emphasis>pattern</emphasis>, i.e. frees memory associated with it and unreferences any
+					other Lua values (other patterns, functions, etc.) so they can get garbage collected.
+				</para><para>
+					Finalizing an already finalized <emphasis>pattern</emphasis> does nothing.
+					Using a finalized <emphasis>pattern</emphasis> in any function or operator working with a pattern
+					will raise an error.
+				</para>
+				<tip><para>
+					<command>free</command> does early what would otherwise be done when the pattern is garbage
+					collected, so in most cases you will not need it at all.
+					It may be useful when you would like to free a large pattern you do not need anymore but
+					removing all references to that pattern and enforcing a full garbage collection cycle
+					is not feasible.
+				</para></tip>
+			</refsect1><refsect1>
+				<title>Parameters</title>
+
+				<orderedlist><listitem>
+					pattern (<emphasis>userdata</emphasis>): The pattern to be finalized
+				</listitem></orderedlist>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<para>
+					Returns nothing.
+				</para>
+			</refsect1><refsect1>
+				<title>Example</title>
+
+				<example>
+					<title>Finalizing a pattern</title>
+
+					<screen>&gt; p = <link linkend="Arb">Arb</link>()
+&gt; p:free()
+&gt; print(p * "foo")
+stdin:1: Pattern already freed
+&gt;</screen>
+				</example>
+			</refsect1>
+		</refentry>
+
+		<refentry xml:id="conversion">
+			<refmeta><refentrytitle>Conversion</refentrytitle></refmeta>
+
+			<refnamediv xml:id="topattern">
+				<refname>topattern</refname>
+				<refpurpose>Convert a value to a pattern</refpurpose>
+			</refnamediv>
+			<refnamediv xml:id="tostring">
+				<refname>tostring</refname>
+				<refpurpose>Render a pattern as a string</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command>spipat.topattern</command>( <arg choice="plain"><replaceable>value</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command>topattern</command>( <arg choice="plain"><replaceable>value</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><replaceable>value</replaceable>:topattern</command>()
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<command>tostring</command>( <arg choice="plain"><replaceable>pattern</replaceable></arg> )
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					<command>topattern</command> creates a pattern for a string or number, matching that string or number.
+					If <emphasis>value</emphasis> is already a pattern it returns that pattern without modification.
+					In case of an unsupported <emphasis>value</emphasis> type or miscelleaneous error, topattern always
+					returns nil.
+				</para>
+				<tip><para>
+					<command>topattern</command> is useful to explicitly create pattern, e.g. when an operator requires
+					at least one operand to be a pattern but both are strings, numbers or functions.
+				</para></tip>
+				<para>
+					Lua's <link xlink:href="http://www.lua.org/manual/5.1/manual.html#pdf-tostring">built-in <command>tostring</command></link>
+					function called on a <emphasis>pattern</emphasis> renders that pattern as a string reminiscent of
+					lspipat's pattern construction syntax.
+				</para>
+				<!--
+				<note><para>
+					The C++ wrapper overloads different operators than <productname>lspipat</productname> does,
+					so <command>tostring</command> return values might look confusing if you are only used to
+					<productname>lspipat</productname>.
+				</para></note>
+				-->
+				<!--
+				<warning><para>
+					spipat's rendering support is quite buggy and has to be considered <emphasis>experimental</emphasis>
+					at this point. You are advised not to use <command>tostring</command>.
+					For debugging purposes you might want to have a look at
+					<link linkend="dump"><command>spipat.dump</command></link>.
+				</para></warning>
+				-->
+			</refsect1><refsect1>
+				<title>Example</title>
+
+				<example>
+					<title>Explicit pattern construction &amp; implicit conversion to strings</title>
+
+					<screen><![CDATA[> print("2" + 3)
+5
+> print(topattern("2") + 3)
+("2" + "3")
+>]]></screen>
+				</example>
+			</refsect1>
+		</refentry>
+
+		<refentry xml:id="dump">
+			<refmeta><refentrytitle>dump</refentrytitle></refmeta>
+
+			<refnamediv>
+				<refname>dump</refname>
+				<refpurpose>Dump a pattern to stdout</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command>spipat.dump</command>( <arg choice="plain"><replaceable>pattern</replaceable></arg> )
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					<command>dump</command> prints information about a <emphasis>pattern</emphasis> to
+					<emphasis>stdout</emphasis>.
+					The kind of information displayed is similar to <link linkend="tostring">
+					<command>tostring</command>'s rendering</link>.
+				</para><para>
+					It is useful for debugging purposes.
+				</para>
+			</refsect1><refsect1>
+				<title>Parameters</title>
+
+				<orderedlist><listitem>
+					pattern (<emphasis>userdata</emphasis>): The pattern to be dumped
+				</listitem></orderedlist>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<para>
+					Returns nothing.
+				</para>
+			</refsect1>
+		</refentry>
+
+		<refentry xml:id="composition">
+			<refmeta><refentrytitle>Concatenation and Alternation</refentrytitle></refmeta>
+
+			<refnamediv xml:id="concat">
+				<refname>*</refname>
+				<refpurpose>Concatenate patterns</refpurpose>
+			</refnamediv>
+			<refnamediv xml:id="alternate">
+				<refname>+</refname>
+				<refpurpose>Alternate patterns</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<arg choice="plain"><replaceable>pattern</replaceable></arg><command>*</command>
+					<arg choice="plain"><replaceable>value</replaceable></arg>
+				</cmdsynopsis><cmdsynopsis>
+					<arg choice="plain"><replaceable>value</replaceable></arg><command>*</command>
+					<arg choice="plain"><replaceable>pattern</replaceable></arg>
+				</cmdsynopsis><cmdsynopsis>
+					<arg choice="plain"><replaceable>pattern</replaceable></arg><command>*</command>
+					<arg choice="plain"><replaceable>pattern</replaceable></arg>
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<arg choice="plain"><replaceable>pattern</replaceable></arg><command>+</command>
+					<arg choice="plain"><replaceable>value</replaceable></arg>
+				</cmdsynopsis><cmdsynopsis>
+					<arg choice="plain"><replaceable>value</replaceable></arg><command>+</command>
+					<arg choice="plain"><replaceable>pattern</replaceable></arg>
+				</cmdsynopsis><cmdsynopsis>
+					<arg choice="plain"><replaceable>pattern</replaceable></arg><command>+</command>
+					<arg choice="plain"><replaceable>pattern</replaceable></arg>
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					The <command>*</command> operator constructs a concatenation of two <emphasis>values</emphasis>
+					if at least one of them is a <emphasis>pattern</emphasis> and returns the result as a <emphasis>pattern</emphasis>.
+					A concatenation matches the left operand immediately followed by the right operand.
+				</para><para>
+					The <command>+</command> operator constructs an alternation between two <emphasis>values</emphasis>
+					if at least one of them is a <emphasis>pattern</emphasis> and returns the result as a <emphasis>pattern</emphasis>.
+					An alternation matches the left operand and <emphasis>if unsuccessful</emphasis> the right operand.
+				</para><para>
+					The non-pattern <emphasis>values</emphasis> may be strings or numbers, which are matched
+					just like a <emphasis>pattern</emphasis> built by
+					<link linkend="topattern"><command>topattern</command></link>.
+				</para>
+				<note><para>
+					Even though the <emphasis>patterns</emphasis> participating in the composition will be copied,
+					references will be kept, so they will not be garbage collected until all <emphasis>patterns</emphasis>
+					using them are garbage collected.
+				</para></note>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<orderedlist><listitem>
+					<emphasis>pattern</emphasis> (userdata): Result of the pattern composition
+				</listitem></orderedlist>
+			</refsect1><refsect1>
+				<title>Example</title>
+
+				<example>
+					<title>Concatenations and Alternations</title>
+
+					<screen>&gt; pat = (<link linkend="topattern">topattern</link>("ABC") + "AB") * (<link linkend="topattern">topattern</link>("DEF") + "CDE") * (<link linkend="topattern">topattern</link>("GH") + "IJ")
+&gt; assert(<link linkend="smatch">spipat.smatch</link>("ABCCDEGH", pat))
+&gt; assert(<link linkend="smatch">spipat.smatch</link>("ABCDEFIJ", pat))
+&gt;</screen>
+				</example>
+			</refsect1>
+		</refentry>
+
+		<refentry xml:id="assignment">
+			<refmeta><refentrytitle>Assignment Calls</refentrytitle></refmeta>
+
+			<refnamediv>
+				<refname>%</refname>
+				<refpurpose>Call Immediately</refpurpose>
+			</refnamediv><refnamediv>
+				<refname>/</refname>
+				<refpurpose>Deferred Call</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<arg choice="plain"><replaceable>pattern</replaceable></arg><command>%</command>
+					<arg choice="plain"><replaceable>function</replaceable></arg>
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<arg choice="plain"><replaceable>pattern</replaceable></arg><command>/</command>
+					<arg choice="plain"><replaceable>function</replaceable></arg>
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					The <command>%</command> operator constructs a pattern matching operand <emphasis>pattern</emphasis> and
+					calling a Lua <emphasis>function</emphasis> whenever <emphasis>pattern</emphasis> matches during a pattern
+					match (i.e. <emphasis>function</emphasis> may be called more than once while matching regardless of whether
+					the match fails or succeeds).
+				</para><para>
+					On the other hand, the <command>/</command> operator constructs a pattern matching operand
+					<emphasis>pattern</emphasis> and calling a Lua <emphasis>function</emphasis> at most once - only if
+					the match succeeds.
+				</para><para>
+					In both cases, <emphasis>function</emphasis> receives the following arguments when called:
+					<orderedlist><listitem>
+						<emphasis>string</emphasis>: The substring matched by <emphasis>pattern</emphasis>
+					</listitem></orderedlist>
+					Its return value is ignored.
+				</para>
+				<note><para>
+					Unlike assignment operators in <emphasis>SNOBOL</emphasis>, the <command>%</command> and <command>/</command>
+					operators in Lua have the <link xlink:href="http://www.lua.org/manual/5.1/manual.html#2.5.6">same precedence</link>
+					as the <link linkend="concat">concatenation operator <command>*</command></link>,
+					so using parentheses is advised.
+				</para></note>
+				<tip><para>
+					Deferred assignments (assign on match &amp; assign immediately) are not directly possible but can be
+					easily implemented using function closures as described in <xref linkend="deferring"/>.
+				</para></tip>
+				<note>
+					<para>
+						Even though the <emphasis>pattern</emphasis> operands will be copied, references will be kept,
+						so they will not be garbage collected until all <emphasis>patterns</emphasis>
+						using them are garbage collected.
+					</para><para>
+						Furthermore, references to <emphasis>functions</emphasis> will be kept so they will not be
+						garbage collected until the patterns constructed by the operators are garbage collected.
+					</para>
+				</note>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<orderedlist><listitem>
+					<emphasis>pattern</emphasis> (userdata): Pattern built by the operators
+				</listitem></orderedlist>
+			</refsect1><refsect1>
+				<title>Example</title>
+
+				See <xref linkend="example_siter"/>.
+			</refsect1>
+		</refentry>
+
+		<refentry xml:id="cursor">
+			<refmeta><refentrytitle>Cursor Assignment Calls</refentrytitle></refmeta>
+
+			<refnamediv>
+				<refname>Setcur</refname>
+				<refpurpose>Cursor Assignment</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command>spipat.Setcur</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command>Setcur</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command>#</command><arg choice="plain"><replaceable>function</replaceable></arg>
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<command>spipat._Setcur</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command>_Setcur</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					<command>Setcur</command> is a pattern constructor returning a pattern matching the null string <literal>""</literal>
+					(i.e. always succeeds when matched) and immediately calling a Lua <emphasis>function</emphasis> when matched.
+					This <emphasis>function</emphasis> receives the following arguments when called:
+					<orderedlist>
+						<listitem>
+							<emphasis>number</emphasis>: The cursor in the subject string.
+							In other words, the number of characters matched so far from the beginning of the subject string.
+						</listitem><listitem>
+							<emphasis>cookie</emphasis>: Any Lua value specified as a cookie in the pattern constructor or
+							<emphasis>nil</emphasis> if no cookie was specified.
+						</listitem>
+					</orderedlist>
+					Its return value is ignored.
+				</para>
+				<tip><para>
+					The unary <command>#</command> operator is equivalent to the <command>Setcur</command> constructor with no
+					<emphasis>cookie</emphasis> specified.
+				</para></tip>
+				<para>
+					<command>_Setcur</command> is similar to <command>Setcur</command> but actually assigns the cursor position to
+					the global variable whose name is specified by a <emphasis>string</emphasis> value.
+					This means that <code>_Setcur(str)</code> does not assign the cursor position to the global variable <literal>str</literal>
+					but rather to the variable with the name <emphasis>str</emphasis> contains, e.g. <literal>foo</literal> if <code>str == "foo"</code>.
+					So generally <command>_Setcur</command> is equivalent to:
+					<informalexample>
+						<programlisting language="lua"><![CDATA[function _Setcur(val)
+	return #function(str) _G[val] = str end
+end]]></programlisting>
+					</informalexample>
+					In a similar manner, other kinds of deferred assignments can be implemented
+					using function closures as described in <xref linkend="deferring"/>.
+				</para>
+				<note><para>
+					References to <emphasis>function</emphasis> and <emphasis>cookie</emphasis> will be kept so they will not be
+					garbage collected until the pattern constructed by <command>Setcur</command> is garbage collected.
+				</para></note>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<orderedlist><listitem>
+					<emphasis>pattern</emphasis> (userdata): Pattern built by the constructor
+				</listitem></orderedlist>
+			</refsect1>
+			<!--<refsect1>
+				<title>Example</title>
+
+			</refsect1>--> <!-- TODO -->
+		</refentry>
+
+		<refentry xml:id="predicate">
+			<refmeta><refentrytitle>Predicates</refentrytitle></refmeta>
+
+			<refnamediv xml:id="Pred">
+				<refname>Pred</refname>
+				<refpurpose>Predicate Constructor</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command>spipat.Pred</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command>Pred</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command>-</command><arg choice="plain"><replaceable>function</replaceable></arg>
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<command>spipat._Pred</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command>_Pred</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command>-</command><arg choice="plain"><replaceable>string</replaceable></arg>
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					<command>Pred</command> constructs a pattern which allows you to transparently define its matching behaviour
+					using a <emphasis>function</emphasis> called when this pattern is attempted to be matched.
+					It receives the following arguments when invoked:
+					<orderedlist><listitem>
+						<emphasis>cookie</emphasis>: Any Lua value specified as a cookie in the pattern constructor or
+						<emphasis>nil</emphasis> if no cookie was specified.
+					</listitem></orderedlist>
+				</para><para>
+					The <emphasis>function's</emphasis> return value defines the behaviour dynamically, as shown in the following table:
+
+					<table xml:id="dynfnc">
+						<title>Dynamic Function Return Values</title>
+
+						<tgroup cols="3" colsep="1" rowsep="1">
+							<colspec colname="value"/>
+							<colspec colname="type"/>
+							<colspec colname="behaviour"/>
+
+							<thead>
+								<row>
+									<entry>Value</entry>
+									<entry>Type</entry>
+									<entry>Behaviour</entry>
+								</row>
+							</thead><tbody>
+								<row>
+									<entry>nil</entry>
+									<entry>nil</entry>
+									<entry morerows="1"><para>
+										Match the <literal>""</literal> string, i.e. succeed.
+									</para></entry>
+								</row><row>
+									<entry>true</entry>
+									<entry morerows="1">boolean</entry>
+								</row><row>
+									<entry>false</entry>
+									<!-- <entry>boolean</entry> -->
+									<entry><para>
+										Pattern match fails, like when using the
+										<link linkend="Fail"><command>Fail</command> primitive</link>.
+									</para></entry>
+								</row><row>
+									<entry namest="value" nameend="type" align="center">any <emphasis>number</emphasis></entry>
+									<entry><para>
+										Try to match that number as a string, as if
+										<link linkend="topattern">converted to a pattern</link>.
+									</para></entry>
+								</row><row>
+									<entry namest="value" nameend="type" align="center">any <emphasis>string</emphasis></entry>
+									<entry><para>
+										Try to match that string, as if
+										<link linkend="topattern">converted to a pattern</link>.
+									</para></entry>
+								</row><row>
+									<entry namest="value" nameend="type" align="center">any <emphasis>pattern</emphasis></entry>
+									<entry><para>
+										Try to match that pattern. Returning a pattern assigned to a variable is the way
+										to implement recursive patterns.
+									</para></entry>
+								</row>
+							</tbody>
+						</tgroup>
+					</table>
+				</para>
+				<tip><para>
+					The unary <command>-</command> operator applied to a <emphasis>function</emphasis> is equivalent
+					to the <command>Pred</command> constructor with no <emphasis>cookie</emphasis> specified.
+				</para></tip>
+				<para>
+					<command>_Pred</command> is similar to <command>Pred</command> but actually gets the Lua value defining its behaviour from
+					the global variable whose name is specified by a <emphasis>string</emphasis> value.
+					This means that <code>_Pred(str)</code> does not get the value from the global variable <literal>str</literal>
+					but rather from the variable with the name <emphasis>str</emphasis> contains, e.g. <literal>foo</literal> if <code>str == "foo"</code>.
+					So generally <command>_Pred</command> is equivalent to:
+					<informalexample>
+						<programlisting language="lua"><![CDATA[function _Pred(val)
+	return -function() return _G[val] end
+end]]></programlisting>
+					</informalexample>
+					In a similar manner, other kinds of variable deferring as well as recursive patterns can be implemented
+					using function closures as described in <xref linkend="deferring"/>.
+				</para>
+				<tip><para>
+					The unary <command>-</command> operator applied to a <emphasis>string</emphasis> which is not convertable to
+					a <emphasis>number</emphasis> is equivalent to the <command>_Pred</command> constructor - naturally this
+					<emphasis>should</emphasis> be true for all global variable names.
+					This constraint comes from the way Lua handles operations by default (it checks whether it is an arithmetic operation
+					before evaluating any metamethod - see <link xlink:href="http://www.lua.org/manual/5.1/manual.html#2.8">metatables</link>).
+				</para></tip>
+				<note><para>
+					References to <emphasis>function</emphasis> and <emphasis>cookie</emphasis> will be kept so they will not be
+					garbage collected until the pattern constructed by <command>Pred</command> is garbage collected.
+				</para></note>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<orderedlist><listitem>
+					<emphasis>pattern</emphasis> (userdata): Pattern built by the constructor
+				</listitem></orderedlist>
+			</refsect1>
+			<!--<refsect1>
+				<title>Example</title>
+
+			</refsect1>--> <!-- TODO -->
+		</refentry>
+
+		<refentry xml:id="string_primitives">
+			<refmeta><refentrytitle>String Primitives</refentrytitle></refmeta>
+
+			<refnamediv xml:id="Any">
+				<refname>Any</refname>
+				<refpurpose>Match any character in a set</refpurpose>
+			</refnamediv>
+			<refnamediv>
+				<refname>NotAny</refname>
+				<refpurpose>Match any character not in a set</refpurpose>
+			</refnamediv>
+			<refnamediv xml:id="Break">
+				<refname>Break</refname>
+				<refpurpose>Match characters up to a break character</refpurpose>
+			</refnamediv>
+			<refnamediv>
+				<refname>BreakX</refname>
+				<refpurpose>Match characters up to a break character (extending)</refpurpose>
+			</refnamediv>
+			<refnamediv>
+				<refname>NSpan</refname>
+				<refpurpose>Match nothing or characters from a set</refpurpose>
+			</refnamediv>
+			<refnamediv xml:id="Span">
+				<refname>Span</refname>
+				<refpurpose>Match characters from a set</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command><arg>spipat.</arg>Any</command>( <arg choice="plain"><replaceable>set</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>Any</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>_Any</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<command><arg>spipat.</arg>NotAny</command>( <arg choice="plain"><replaceable>set</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>NotAny</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>_NotAny</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<command><arg>spipat.</arg>Break</command>( <arg choice="plain"><replaceable>set</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>Break</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>_Break</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<command><arg>spipat.</arg>BreakX</command>( <arg choice="plain"><replaceable>set</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>BreakX</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>_BreakX</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<command><arg>spipat.</arg>NSpan</command>( <arg choice="plain"><replaceable>set</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>NSpan</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>_NSpan</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<command><arg>spipat.</arg>Span</command>( <arg choice="plain"><replaceable>set</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>Span</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>_Span</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					String primitives are pattern constructors that in their first form all take a <emphasis>string</emphasis> or
+					<emphasis>number</emphasis> (which is converted to a <emphasis>string</emphasis>) as their sole argument
+					(<emphasis>set</emphasis>).
+				</para><para>
+					In their second form they take a Lua <emphasis>function</emphasis> and an optional <emphasis>cookie</emphasis>
+					as arguments. When the constructed pattern is about to be matched, the <emphasis>function</emphasis> is called
+					and is supposed to return a <emphasis>string</emphasis> or <emphasis>number</emphasis> (which is converted to
+					a <emphasis>string</emphasis>) to supply the primitive's argument dynamically.
+					It receives the following arguments when invoked:
+					<orderedlist><listitem>
+						<emphasis>cookie</emphasis>: Any Lua value specified as a cookie in the pattern constructor or
+						<emphasis>nil</emphasis> if no cookie was specified.
+					</listitem></orderedlist>
+				</para><para>
+					The primitives with a leading underscore (e.g. <command>_Any</command>) are similar but actually get their argument
+					from a global variable with the name a <emphasis>string</emphasis> argument contains.
+					This means that for instance <code>_Any(str)</code> does not get its character set from the global variable <literal>str</literal>
+					but rather from the variable with the name <emphasis>str</emphasis> contains, e.g. <literal>foo</literal> if <code>str == "foo"</code>.
+					So generally <command>_Any</command> is equivalent to:
+					<informalexample>
+						<programlisting language="lua"><![CDATA[function _Any(val)
+	return Any(function() return _G[val] end)
+end]]></programlisting>
+					</informalexample>
+					In a similar manner, other kinds of variable deferring can be implemented
+					using function closures as described in <xref linkend="deferring"/>.
+				</para>
+				<note><para>
+					References to <emphasis>function</emphasis> and <emphasis>cookie</emphasis> will be kept so they will not be
+					garbage collected until the pattern constructed is garbage collected.
+				</para></note>
+				<para>
+					The following table describes what these primitives do:
+
+					<!-- Largely copied from the GNAT.SPITBOL docs -->
+					<table>
+						<title>String Primitives</title>
+
+						<tgroup cols="2" colsep="1" rowsep="1">
+							<colspec colwidth="10%"/>
+
+							<thead>
+								<row>
+									<entry>Primitive</entry>
+									<entry>Description</entry>
+								</row>
+							</thead><tbody>
+								<row>
+									<entry><command>Any</command>( <arg choice="plain"><replaceable>S</replaceable></arg> )</entry>
+									<entry><para>
+										Where S is a string, matches a single character that is
+										any one of the characters in S. Fails if the current
+										character is not one of the given set of characters.
+									</para></entry>
+								</row><row>
+									<entry><command>NotAny</command>( <arg choice="plain"><replaceable>S</replaceable></arg> )</entry>
+									<entry><para>
+										Where S is a string, matches a single character that is
+										not one of the characters of S. Fails if the current
+										characer is one of the given set of characters.
+									</para></entry>
+								</row><row>
+									<entry><command>Break</command>( <arg choice="plain"><replaceable>S</replaceable></arg> )</entry>
+									<entry><para>
+										Where S is a string, matches a string of zero or more
+										characters up to but not including a break character
+										that is one of the characters given in the string S.
+										Can match the null string, but cannot match the last
+										character in the string, since a break character is
+										required to be present.
+									</para></entry>
+								</row><row>
+									<entry><command>BreakX</command>( <arg choice="plain"><replaceable>S</replaceable></arg> )</entry>
+									<entry><para>
+										Where S is a string, behaves exactly like <command>Break</command>(S) when
+										it first matches, but if a string is successfully matched,
+										then a susequent failure causes an attempt to extend the
+										matched string.
+									</para></entry>
+								</row><row>
+									<entry><command>NSpan</command>( <arg choice="plain"><replaceable>S</replaceable></arg> )</entry>
+									<entry><para>
+										Where S is a string, matches a string of zero or more
+										characters that is among the characters given in the
+										string. Always matches the longest possible such string.
+										Always succeeds, since it can match the null string.
+									</para></entry>
+								</row><row>
+									<entry><command>Span</command>( <arg choice="plain"><replaceable>S</replaceable></arg> )</entry>
+									<entry><para>
+										Where S is a string, matches a string of one or more
+										characters that is among the characters given in the
+										string. Always matches the longest possible such string.
+										Fails if the current character is not one of the given
+										set of characters.
+									</para></entry>
+								</row>
+							</tbody>
+						</tgroup>
+					</table>
+				</para>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<orderedlist><listitem>
+					<emphasis>pattern</emphasis> (userdata): Pattern built by the constructor
+				</listitem></orderedlist>
+			</refsect1>
+			<!--<refsect1>
+				<title>Example</title>
+
+			</refsect1>--> <!-- TODO -->
+		</refentry>
+
+		<refentry>
+			<refmeta><refentrytitle>Arbno</refentrytitle></refmeta>
+
+			<refnamediv>
+				<refname>Arbno</refname>
+				<refpurpose>Matches a pattern any number of times</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command>spipat.Arbno</command>( <arg choice="plain"><replaceable>P</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command>Arbno</command>( <arg choice="plain"><replaceable>P</replaceable></arg> )
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					Where P is any pattern, matches any number of instances
+					of the pattern, starting with zero occurrences. It is
+					thus equivalent to <code>("" + (P * ("" + (P * ("" ....))))</code>.
+					The pattern P may contain any number of pattern elements
+					including the use of alternation and concatenation.
+				</para><para>
+					<command>Arbno</command> is a pattern constructor taking exactly one argument which is
+					either a <emphasis>pattern</emphasis> or <emphasis>string</emphasis> (which is treated
+					like it is <link linkend="topattern">converted to a pattern</link> first).
+				</para>
+				<note><para>
+					A reference to <emphasis>P</emphasis> will be kept if it is a <emphasis>pattern</emphasis>
+					so it will not be garbage collected until the pattern constructed is garbage collected.
+				</para></note>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<orderedlist><listitem>
+					<emphasis>pattern</emphasis> (userdata): Pattern built by <command>Arbno</command>
+				</listitem></orderedlist>
+			</refsect1>
+			<!--<refsect1>
+				<title>Example</title>
+
+			</refsect1>--> <!-- TODO -->
+		</refentry>
+
+		<refentry>
+			<refmeta><refentrytitle>Fence</refentrytitle></refmeta>
+
+			<refnamediv>
+				<refname>Fence</refname>
+				<refpurpose>Abort match when alternations are sought</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command>spipat.Fence</command>( <arg><replaceable>P</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command>Fence</command>( <arg><replaceable>P</replaceable></arg> )
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					<command>Fence</command> is a pattern constructor taking no or exactly one
+					<emphasis>pattern</emphasis> as an argument.
+				</para>
+				<note><para>
+					A reference to pattern <emphasis>P</emphasis> will be kept so it will not
+					be garbage collected until the pattern constructed is garbage collected.
+				</para></note>
+				<para>
+					The following table describes what the two versions do:
+
+					<!-- Largely copied from the GNAT.SPITBOL docs -->
+					<table>
+						<title>Fence Primitive</title>
+
+						<tgroup cols="2" colsep="1" rowsep="1">
+							<colspec colwidth="10%"/>
+
+							<thead>
+								<row>
+									<entry>Primitive</entry>
+									<entry>Description</entry>
+								</row>
+							</thead><tbody>
+								<row>
+									<entry><command>Fence</command>()</entry>
+									<entry><para>
+										Matches the null string at first, and then if a failure
+										causes alternatives to be sought, aborts the match (like
+										a Cancel). Note that using <command>Fence</command> at the
+										start of a pattern has the same effect as matching in anchored mode.
+									</para></entry>
+								</row><row>
+									<entry><command>Fence</command>( <arg choice="plain"><replaceable>P</replaceable></arg> )</entry>
+									<entry><para>
+										Where P is a pattern, attempts to match the pattern P
+										including trying all possible alternatives of P. If none
+										of these alternatives succeeds, then the <command>Fence</command> pattern
+										fails. If one alternative succeeds, then the pattern
+										match proceeds, but on a subsequent failure, no attempt
+										is made to search for alternative matches of P. The
+										pattern P may contain any number of pattern elements
+										including the use of alternatiion and concatenation.
+									</para></entry>
+								</row>
+							</tbody>
+						</tgroup>
+					</table>
+				</para>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<orderedlist><listitem>
+					<emphasis>pattern</emphasis> (userdata): Pattern built by <command>Fence</command>
+				</listitem></orderedlist>
+			</refsect1>
+			<!--<refsect1>
+				<title>Example</title>
+
+			</refsect1>--> <!-- TODO -->
+		</refentry>
+
+		<refentry xml:id="uint_primitives">
+			<refmeta><refentrytitle>Integer Primitives</refentrytitle></refmeta>
+
+			<refnamediv xml:id="Len">
+				<refname>Len</refname>
+				<refpurpose>Match a number of characters</refpurpose>
+			</refnamediv>
+			<refnamediv>
+				<refname>Pos</refname>
+				<refpurpose>Match null string if number of characters have been matched</refpurpose>
+			</refnamediv>
+			<refnamediv>
+				<refname>RPos</refname>
+				<refpurpose>Match null string if number of characters remain to be matched</refpurpose>
+			</refnamediv>
+			<refnamediv>
+				<refname>Tab</refname>
+				<refpurpose>Match characters until number of characters have been matched</refpurpose>
+			</refnamediv>
+			<refnamediv>
+				<refname>RTab</refname>
+				<refpurpose>Match characters until number of characters remain to be matched</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command><arg>spipat.</arg>Len</command>( <arg><replaceable>n</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>Len</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>_Len</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<command><arg>spipat.</arg>Pos</command>( <arg><replaceable>n</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>Pos</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>_Pos</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<command><arg>spipat.</arg>RPos</command>( <arg><replaceable>n</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>RPos</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>_RPos</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<command><arg>spipat.</arg>Tab</command>( <arg><replaceable>n</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>Tab</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>_Tab</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis>
+
+				<cmdsynopsis>
+					<command><arg>spipat.</arg>RTab</command>( <arg><replaceable>n</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>RTab</command>
+					( <arg choice="plain"><replaceable>function</replaceable></arg><arg>, <replaceable>cookie</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command><arg>spipat.</arg>_RTab</command>( <arg choice="plain"><replaceable>string</replaceable></arg> )
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					Integer primitives are pattern constructors that in their first form all take a <emphasis>number</emphasis> or
+					<emphasis>string</emphasis> (which is converted to a <emphasis>number</emphasis>) as their sole argument
+					(<emphasis>n</emphasis>).
+					This <emphasis>number</emphasis> has to be an unsigned integer - sometimes a natural number depending on the
+					primitive.
+				</para>
+				<tip><para>
+					If the argument is ommitted, <emphasis>zero</emphasis> is assumed.
+				</para></tip>
+				<para>
+					In their second form the primitives take a Lua <emphasis>function</emphasis> and an optional <emphasis>cookie</emphasis>
+					as arguments. When the constructed pattern is about to be matched, the <emphasis>function</emphasis> is called
+					and is supposed to return a <emphasis>number</emphasis> or <emphasis>string</emphasis> (which is converted to
+					a <emphasis>number</emphasis>) to supply the primitive's argument dynamically.
+					It receives the following arguments when invoked:
+					<orderedlist><listitem>
+						<emphasis>cookie</emphasis>: Any Lua value specified as a cookie in the pattern constructor or
+						<emphasis>nil</emphasis> if no cookie was specified.
+					</listitem></orderedlist>
+				</para><para>
+					The primitives with a leading underscore (e.g. <command>_Len</command>) are similar but actually get their argument
+					from a global variable with the name a <emphasis>string</emphasis> argument contains.
+					This means that for instance <code>_Len(str)</code> does not get its argument from the global variable <literal>str</literal>
+					but rather from the variable with the name <emphasis>str</emphasis> contains, e.g. <literal>foo</literal> if <code>str == "foo"</code>.
+					So generally <command>_Len</command> is equivalent to:
+					<informalexample>
+						<programlisting language="lua"><![CDATA[function _Len(val)
+	return Len(function() return _G[val] end)
+end]]></programlisting>
+					</informalexample>
+					In a similar manner, other kinds of variable deferring can be implemented
+					using function closures as described in <xref linkend="deferring"/>.
+				</para>
+				<note><para>
+					References to <emphasis>function</emphasis> and <emphasis>cookie</emphasis> will be kept so they will not be
+					garbage collected until the pattern constructed is garbage collected.
+				</para></note>
+				<para>
+					The following table describes what these primitives do:
+
+					<!-- Largely copied from the GNAT.SPITBOL docs -->
+					<table>
+						<title>Integer Primitives</title>
+
+						<tgroup cols="2" colsep="1" rowsep="1">
+							<colspec colwidth="10%"/>
+
+							<thead>
+								<row>
+									<entry>Primitive</entry>
+									<entry>Description</entry>
+								</row>
+							</thead><tbody>
+								<row>
+									<entry><command>Len</command>( <arg choice="plain"><replaceable>N</replaceable></arg> )</entry>
+									<entry><para>
+										Where N is a natural number, matches the given number of
+										characters. For example, <code>Len(10)</code> matches any string that
+										is exactly ten characters long.
+									</para></entry>
+								</row><row>
+									<entry><command>Pos</command>( <arg choice="plain"><replaceable>N</replaceable></arg> )</entry>
+									<entry><para>
+										Where N is a natural number, matches the null string
+										if exactly N characters have been matched so far, and
+										otherwise fails.
+									</para></entry>
+								</row><row>
+									<entry><command>RPos</command>( <arg choice="plain"><replaceable>N</replaceable></arg> )</entry>
+									<entry><para>
+										Where N is a natural number, matches the null string
+										if exactly N characters remain to be matched, and
+										otherwise fails.
+									</para></entry>
+								</row><row>
+									<entry><command>Tab</command>( <arg choice="plain"><replaceable>N</replaceable></arg> )</entry>
+									<entry><para>
+										Where N is a natural number, matches characters from
+										the current position until exactly N characters have
+										been matched in all. Fails if more than N characters
+										have already been matched.
+									</para></entry>
+								</row><row>
+									<entry><command>RTab</command>( <arg choice="plain"><replaceable>N</replaceable></arg> )</entry>
+									<entry><para>
+										Where N is a natural number, matches characters from
+										the current position until exactly N characters remain
+										to be matched in the string. Fails if fewer than N
+										unmatched characters remain in the string.
+									</para></entry>
+								</row>
+							</tbody>
+						</tgroup>
+					</table>
+				</para>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<orderedlist><listitem>
+					<emphasis>pattern</emphasis> (userdata): Pattern built by the constructor
+				</listitem></orderedlist>
+			</refsect1>
+			<!--<refsect1>
+				<title>Example</title>
+
+			</refsect1>--> <!-- TODO -->
+		</refentry>
+
+		<refentry xml:id="misc_primitives">
+			<refmeta><refentrytitle>Miscelleanous Primitives</refentrytitle></refmeta>
+
+			<refnamediv xml:id="Arb">
+				<refname>Arb</refname>
+				<refpurpose>Matches any string</refpurpose>
+			</refnamediv>
+			<refnamediv>
+				<refname>Bal</refname>
+				<refpurpose>Matches parentheses balanced strings</refpurpose>
+			</refnamediv>
+			<refnamediv>
+				<refname>Abort</refname>
+				<refpurpose>Immediately abort pattern match</refpurpose>
+			</refnamediv>
+			<refnamediv xml:id="Fail">
+				<refname>Fail</refname>
+				<refpurpose>Null alternation</refpurpose>
+			</refnamediv>
+			<refnamediv>
+				<refname>Rem</refname>
+				<refpurpose>Match the entire remaining subject string</refpurpose>
+			</refnamediv>
+			<refnamediv>
+				<refname>Succeed</refname>
+				<refpurpose>Match the null string in every alternative</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command>spipat.Arb</command>()
+				</cmdsynopsis><cmdsynopsis>
+					<command>Arb</command>()
+				</cmdsynopsis><cmdsynopsis>
+					<command>spipat.Bal</command>()
+				</cmdsynopsis><cmdsynopsis>
+					<command>Bal</command>()
+				</cmdsynopsis><cmdsynopsis>
+					<command>spipat.Abort</command>()
+				</cmdsynopsis><cmdsynopsis>
+					<command>Abort</command>()
+				</cmdsynopsis><cmdsynopsis>
+					<command>spipat.Fail</command>()
+				</cmdsynopsis><cmdsynopsis>
+					<command>Fail</command>()
+				</cmdsynopsis><cmdsynopsis>
+					<command>spipat.Rem</command>()
+				</cmdsynopsis><cmdsynopsis>
+					<command>Rem</command>()
+				</cmdsynopsis><cmdsynopsis>
+					<command>spipat.Succeed</command>()
+				</cmdsynopsis><cmdsynopsis>
+					<command>Succeed</command>()
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					These are <emphasis>simple</emphasis> pattern constructor
+					functions.
+				</para><para>
+					The following table describes what these primitives do:
+
+					<!-- Largely copied from the GNAT.SPITBOL docs -->
+					<table>
+						<title>Miscelleanous Primitives</title>
+
+						<tgroup cols="2" colsep="1" rowsep="1">
+							<colspec colwidth="10%"/>
+
+							<thead>
+								<row>
+									<entry>Primitive</entry>
+									<entry>Description</entry>
+								</row>
+							</thead><tbody>
+								<row>
+									<entry><command>Arb</command>()</entry>
+									<entry><para>
+										Matches any string. First it matches the null string, and
+										then on a subsequent failure, matches one character, and
+										then two characters, and so on. It only fails if the
+										entire remaining string is matched.
+									</para></entry>
+								</row><row>
+									<entry><command>Bal</command>()</entry>
+									<entry><para>
+										Matches a non-empty string that is parentheses balanced
+										with respect to ordinary <literal>()</literal> characters.
+										Examples of balanced strings are <literal>"ABC"</literal>,
+										<literal>"A((B)C)"</literal>, and <literal>"A(B)C(D)E"</literal>.
+										<command>Bal</command> matches the shortest possible balanced
+										string on the first attempt, and if there is a subsequent failure,
+										attempts to extend the string.
+									</para></entry>
+								</row><row>
+									<entry><command>Abort</command>()</entry>
+									<entry><para>
+										Immediately aborts the entire pattern match, signalling
+										failure. This is a specialized pattern element, which is
+										useful in conjunction with some of the special pattern
+										elements that have side effects.
+									</para></entry>
+								</row><row>
+									<entry><command>Fail</command>()</entry>
+									<entry><para>
+										The null alternation. Matches no possible strings, so it
+										always signals failure. This is a specialized pattern
+										element, which is useful in conjunction with some of the
+										special pattern elements that have side effects.
+									</para></entry>
+								</row><row>
+									<entry><command>Rem</command>()</entry>
+									<entry><para>
+										Matches from the current point to the last character in
+										the string. This is a specialized pattern element, which
+										is useful in conjunction with some of the special pattern
+										elements that have side effects.
+									</para></entry>
+								</row><row>
+									<entry><command>Succeed</command>()</entry>
+									<entry><para>
+										Repeatedly matches the null string (it is equivalent to
+										the alternation <code>("" + "" + "" ....)</code>. This is a special
+										pattern element, which is useful in conjunction with some
+										of the special pattern elements that have side effects.
+									</para></entry>
+								</row>
+							</tbody>
+						</tgroup>
+					</table>
+				</para>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<orderedlist><listitem>
+					<emphasis>pattern</emphasis> (userdata): Pattern built by the constructor
+				</listitem></orderedlist>
+			</refsect1>
+			<!--<refsect1>
+				<title>Example</title>
+
+			</refsect1>--> <!-- TODO -->
+		</refentry>
+
+		<refentry xml:id="RegExp">
+			<refmeta><refentrytitle>POSIX Extended Regular Expressions</refentrytitle></refmeta>
+
+			<refnamediv>
+				<refname>RegExp</refname>
+				<refpurpose>Matches a pattern equivalent to a regular expression</refpurpose>
+			</refnamediv>
+
+			<refsynopsisdiv>
+				<cmdsynopsis>
+					<command>spipat.RegExp</command>
+					( <arg choice="plain"><replaceable>expression</replaceable></arg><arg>, <replaceable>captures</replaceable></arg> )
+				</cmdsynopsis><cmdsynopsis>
+					<command>RegExp</command>
+					( <arg choice="plain"><replaceable>expression</replaceable></arg><arg>, <replaceable>captures</replaceable></arg> )
+				</cmdsynopsis>
+			</refsynopsisdiv>
+
+			<refsect1>
+				<title>Description</title>
+
+				<para>
+					<command>RegExp</command> constructs from a
+					<link xlink:href="http://www.opengroup.org/onlinepubs/7990989775/xbd/re.html#tag_007_004">
+					POSIX Extended Regular Expression</link>, a pattern that is equivalent to that regular
+					<emphasis>expression</emphasis> and can be combined with other patterns freely.
+				</para><para>
+					It can optionally construct the pattern to save the <emphasis>captures</emphasis>
+					from a regular expression match in a Lua <emphasis>table</emphasis>.
+				</para>
+				<warning><para>
+					Even though this implementation should support almost all elements of EREs,
+					it is considered <emphasis>experimental</emphasis>.
+					You are advised to use the usual pattern construction primitives.
+				</para></warning>
+			</refsect1><refsect1>
+				<title>Parameters</title>
+
+				<orderedlist>
+					<listitem>
+						expression (<emphasis>string</emphasis>): The POSIX ERE which is compiled
+						to a pattern.
+					</listitem><listitem>
+						captures (<emphasis>table</emphasis>): Optional table, or more precisely
+						array, to hold subexpression captures.
+						Naturally, it has to exist when <command>RegExp</command> is called.
+						When a subexpression is captured (i.e. the pattern equivalent to what is
+						enclosed in parentheses), the matching string is added to the
+						end of the table.
+						Thus taken that <emphasis>captures</emphasis> is initially empty, if
+						<code>RegExp("(a(b))", captures)</code> matches, <emphasis>captures</emphasis>
+						will be <code>{"b", "ab"}</code>.
+					</listitem>
+				</orderedlist>
+			</refsect1><refsect1>
+				<title>Return Values</title>
+
+				<orderedlist><listitem>
+					<emphasis>pattern</emphasis> (userdata): Pattern built by <command>RegExp</command>
+				</listitem></orderedlist>
+			</refsect1><refsect1>
+				<title>Example</title>
+
+				<example>
+					<title>Regular Expressions</title>
+
+					<screen><![CDATA[> print(RegExp "^[[:digit:]]*?(abc\\.|de?)")
+Pos(0) * Arbno(Any(<CS>)) * ("abc." + "d" * ("" + "e"))
+>]]></screen>
+				</example>
+			</refsect1>
+		</refentry>
+	</reference>
+</book>

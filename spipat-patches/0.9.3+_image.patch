@@ -1,0 +1,94 @@
+--- image.c.orig	2010-05-15 02:03:24.000000000 +0200
++++ image.c	2010-05-18 06:16:02.347573592 +0200
+@@ -346,16 +346,16 @@
+ 	break;
+ 
+     case PC_Arbno_S:
+-	Append(sp, sp->strings[E->Pcode]);
++	Append(sp, sp->strings[PC_Arbno_S]);
+ 	AppendC(sp, '(');
+ 	spipat_image_seq(sp, E->val.Alt, E, false);
+ 	AppendC(sp, ')');
+ 	break;
+ 
+     case PC_Arbno_X:
+-	Append(sp, sp->strings[E->Pcode]);
++	Append(sp, sp->strings[PC_Arbno_X]);
+ 	AppendC(sp, '(');
+-	spipat_image_seq(sp, E->val.Alt->Pthen, sp->Refs[E->Index - 2], false);
++	spipat_image_seq(sp, E->val.Alt->Pthen, sp->Refs[E->Index - 3], false);
+ 	AppendC(sp, ')');
+ 	break;
+ 
+@@ -378,10 +378,10 @@
+ 	break;
+ 
+     case PC_Fence_X:
+-	Append(sp, sp->strings[E->Pcode]);
+-	spipat_image_seq (sp, E->Pthen, sp->Refs[E->Index - 1], false);
++	Append(sp, sp->strings[PC_Fence_X]);
++	AppendC(sp, '(');
++	spipat_image_seq(sp, sp->Refs[E->Index]->Pthen, E, false); // PC_R_Enter at Refs[E->Index]
+ 	AppendC(sp, ')');
+-	ER = sp->Refs[E->Index - 1]->Pthen;
+ 	break;
+ 
+     case PC_Len_Nat:
+@@ -410,11 +410,13 @@
+ 	break;
+ 
+     case PC_Null:
+-	Append(sp, "\"\"");
++	Append(sp, sp->quote);
++	Append(sp, sp->quote);
+ 	break;
+ 
+     case PC_R_Enter:
+ 	sp->Kill_Concat = true;
++	ER = sp->Refs[E->Index - 2]; // allows correct processing of PC_Fence_X & PC_Call_*
+ 	break;
+ 
+     case PC_Rpat:
+@@ -486,13 +488,11 @@
+ 
+     case PC_Call_Imm:
+     case PC_Call_OnM:
+-	// XXX fix me!!
+ 	AppendC(sp, '(');
+-	spipat_image_seq(sp, E, sp->Refs[E->Index - 1], true);
++	spipat_image_seq(sp, sp->Refs[E->Index]->Pthen, E, true); // PC_R_Enter at Refs[E->Index]
+ 	Append(sp, sp->strings[E->Pcode]);
+-	AppendMF(sp, sp->Refs[E->Index - 1]);
++	AppendMF(sp, E);
+ 	AppendC(sp, ')');
+-	ER = sp->Refs[E->Index - 1]->Pthen;
+ 	break;
+ 
+     case PC_Arb_Y:
+--- spipat_image.h.orig	2010-05-15 01:24:44.000000000 +0200
++++ spipat_image.h	2010-05-15 19:37:32.039626005 +0200
+@@ -78,7 +78,7 @@
+     void (*fdf)(struct state *, struct pe *);
+ };
+ 
+-extern const char *image_strs[PC_NUM_CODES];
++extern const char *image_strs[];
+ 
+ void spipat_image_seq(struct state *sp,
+ 		      struct pe *E, struct pe *Succ, bool Paren);
+--- image_strs.c.orig	2010-05-12 01:50:05.000000000 +0200
++++ image_strs.c	2010-05-16 06:27:43.228365501 +0200
+@@ -14,6 +14,7 @@
+     [PC_Any_VP]	= "Any",
+     [PC_Arb_X]	= "Arb",
+     [PC_Arbno_S] = "Arbno",
++    [PC_Arbno_X] = "Arbno",
+     [PC_Assign_Imm] = " . ",
+     [PC_Assign_OnM] = " $ ",
+     [PC_Bal]	= "Bal",
+@@ -64,4 +65,5 @@
+     [PC_Tab_NF] = "Tab",
+     [PC_Tab_NP] = "Tab",
+     [PC_Tab_Nat] = "Tab",
++    [PC_Dynamic_Func] = "Dynamic"
+ };
